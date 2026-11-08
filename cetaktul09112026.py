@@ -9,117 +9,134 @@ import math
 from datetime import datetime, timedelta, timezone
 
 # --- PENGATURAN HALAMAN ---
-st.set_page_config(page_title="Aplikasi Cetak TUL VI-01 Universal", layout="wide")
+st.set_page_config(page_title="Aplikasi Cetak TUL VI-01 Multi-Unit", layout="wide")
 
-# --- SISTEM AUTO-SAVE KONFIGURASI LOKAL ---
-CONFIG_FILE = "config_cetak_tul.json"
+# --- SISTEM PENYIMPANAN MULTI-UNIT (AUTO-SAVE) ---
+DB_CONFIG_FILE = "db_profil_unit_tul.json"
 
-DEFAULT_MAPPING_TEXT = """JCA=c01, TAA=c02, JCB=c03, JCC=c04, NCD=c05, KBA=c06, TAB=c07, JCE=c08, TAC=c09, MBB=c10, KAD=c11, TAE=c12, KCF=c13, JCG=c14, TAF=c15, KAG=c16, BBC=c17, TAH=c18, BCK=c19, NCH=c20, JBE=c21, MBF=c22, MBG=c23, KBH=c24, KBI=c25, KAI=c26, MCI=c27, KBJ=c28, JCJ=c29, TAJ=c30, MBK=c31, KBL=c32, TAK=c33, KAL=c34, JCL=c35, MBD=c36, KCJ=c29, NBJ=c28, TAI=c26, BBD=c19, KCG=c29, MBM=c23"""
-
-DEFAULT_IDPEL_KHUSUS = """524051069054=c28, 524051263717=c36, 524051265123=c36, 524051104194=c04, 524051000615=c08, 524050867033=c08"""
-
-DEFAULT_CONFIG = {
-    "up3": "UP3 KLATEN",
-    "ulp": "ULP TULUNG",
-    "mode_cetak": "Tahap 2: Isi Blangko Saja",
-    "tipe_printer": "Epson LQ-2190 (Standar Blangko 15 CPI - ESC g)",
-    "geser_kanan": 0.0,
-    "geser_bawah": 0.0,
-    "tinggi_halaman": 44,
-    "geser_koked": 0,
-    "geser_rptag": 0,
-    "geser_bk": 0,
-    "geser_total": 0,
-    "cetak_kota": False,
-    "kota_cetak": "TULUNG",
-    "geser_kota_x": 0.0,
-    "cetak_tgl": True,
-    "geser_tgl": 8.0,
-    "geser_kota_tgl_y": 0,
-    "cetak_jab": False,
-    "jabatan": "MANAGER",
-    "geser_jab_x": 0.0,
-    "geser_jab_y": 0,
-    "cetak_mgr": True,
-    "nama_manager": "MARTONO AJI PRABOWO",
-    "geser_mgr_x": 0.0,
-    "geser_mgr_y": 0,
-    "mode_petugas": "Otomatis dari KDDK (3 Huruf Tengah / Mapping Manual)",
-    "batas_daya_pln": 33000,
-    "mapping_kddk_text": DEFAULT_MAPPING_TEXT,
-    "idpel_khusus_text": DEFAULT_IDPEL_KHUSUS
+DEFAULT_MAPPING_TULUNG = {
+    "JCA": "c01", "TAA": "c02", "JCB": "c03", "JCC": "c04", "NCD": "c05",
+    "KBA": "c06", "TAB": "c07", "JCE": "c08", "TAC": "c09", "MBB": "c10",
+    "KAD": "c11", "TAE": "c12", "KCF": "c13", "JCG": "c14", "TAF": "c15",
+    "KAG": "c16", "BBC": "c17", "TAH": "c18", "BCK": "c19", "NCH": "c20",
+    "JBE": "c21", "MBF": "c22", "MBG": "c23", "KBH": "c24", "KBI": "c25",
+    "KAI": "c26", "MCI": "c27", "KBJ": "c28", "JCJ": "c29", "TAJ": "c30",
+    "MBK": "c31", "KBL": "c32", "TAK": "c33", "KAL": "c34", "JCL": "c35",
+    "MBD": "c36", "KCJ": "c29", "NBJ": "c28", "TAI": "c26", "BBD": "c19",
+    "KCG": "c29", "MBM": "c23"
 }
 
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                cfg = DEFAULT_CONFIG.copy()
-                cfg.update(saved)
-                return cfg
-        except Exception:
-            return DEFAULT_CONFIG.copy()
-    return DEFAULT_CONFIG.copy()
+DEFAULT_IDPEL_TULUNG = {
+    "524051069054": "c28", "524051263717": "c36", "524051265123": "c36", 
+    "524051104194": "c04", "524051000615": "c08", "524050867033": "c08"
+}
 
-def save_config(cfg):
+def buat_profil_standar(nama_ulp="ULP BARU", is_tulung=False):
+    return {
+        "up3": "UP3 KLATEN",
+        "ulp": nama_ulp,
+        "mode_cetak": "Tahap 2: Isi Blangko Saja",
+        "tipe_printer": "Epson LQ-2190 (Standar Blangko 15 CPI - ESC g)",
+        "geser_kanan": 0.0,
+        "geser_bawah": 0.0,
+        "tinggi_halaman": 44,
+        "geser_koked": 0,
+        "geser_rptag": 0,
+        "geser_bk": 0,
+        "geser_total": 0,
+        "cetak_kota": False,
+        "kota_cetak": nama_ulp.replace("ULP ", ""),
+        "geser_kota_x": 0.0,
+        "cetak_tgl": True,
+        "geser_tgl": 8.0,
+        "geser_kota_tgl_y": 0,
+        "cetak_jab": False,
+        "jabatan": "MANAGER",
+        "geser_jab_x": 0.0,
+        "geser_jab_y": 0,
+        "cetak_mgr": True,
+        "nama_manager": "MARTONO AJI PRABOWO" if is_tulung else "NAMA MANAGER ULP",
+        "geser_mgr_x": 0.0,
+        "geser_mgr_y": 0,
+        "batas_daya_pln": 33000,
+        "posisi_kddk_awal": 4,
+        "posisi_kddk_akhir": 6,
+        "map_kddk": DEFAULT_MAPPING_TULUNG.copy() if is_tulung else {},
+        "map_idpel": DEFAULT_IDPEL_TULUNG.copy() if is_tulung else {}
+    }
+
+def load_all_profiles():
+    default_db = {"ULP TULUNG": buat_profil_standar("ULP TULUNG", is_tulung=True)}
+    if os.path.exists(DB_CONFIG_FILE):
+        try:
+            with open(DB_CONFIG_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, dict) and len(saved) > 0:
+                    for k, v in saved.items():
+                        base = buat_profil_standar(k, is_tulung=(k == "ULP TULUNG"))
+                        base.update(v)
+                        saved[k] = base
+                    return saved
+        except Exception:
+            pass
+    return default_db
+
+def save_all_profiles(db):
     try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, indent=4, ensure_ascii=False)
+        with open(DB_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(db, f, indent=4, ensure_ascii=False)
     except Exception:
         pass
 
-if "cfg" not in st.session_state:
-    st.session_state.cfg = load_config()
+if "db_unit" not in st.session_state:
+    st.session_state.db_unit = load_all_profiles()
+if "unit_aktif" not in st.session_state:
+    st.session_state.unit_aktif = list(st.session_state.db_unit.keys())[0]
 
-# --- FUNGSI PARSING MAPPING PETUGAS ---
-def parse_mapping_text(teks):
-     hasil = {}
-    if not teks: return hasil
-    # Pisahkan dengan koma atau baris baru
-    items = re.split(r'[,\n]+', teks)
-    for item in items:
-        if '=' in item:
-            k, v = item.split('=', 1)
-            k_clean = k.strip().upper()
-            v_clean = v.strip()
-            if k_clean and v_clean:
-                hasil[k_clean] = v_clean
-    return hasil
+
+# --- LOGIKA PENENTUAN PETUGAS BERJENJANG ---
+def ekstrak_kode_rbm(kddk, pos_awal=4, pos_akhir=6):
+    s = str(kddk).strip().upper()
+    idx_start = max(0, int(pos_awal) - 1)
+    idx_end = int(pos_akhir)
+    if len(s) >= idx_end and idx_end > idx_start:
+        return s[idx_start:idx_end]
+    return ""
 
 def tentukan_petugas_universal(idpel, tarif_daya, kddk, cfg):
-    mode = cfg.get("mode_petugas", "Otomatis dari KDDK (3 Huruf Tengah / Mapping Manual)")
-    if mode == "Tanpa Pembagian Petugas (Gabung Semua)":
-        return "SEMUA"
+    idpel_clean = str(idpel).replace('.0', '').strip()
+    map_idpel = cfg.get("map_idpel", {})
+    map_kddk = cfg.get("map_kddk", {})
+    
+    # PRIORITAS 1: Cek IDPEL Khusus (Mengalahkan aturan Daya > 33.000 VA & aturan KDDK)
+    if idpel_clean in map_idpel and str(map_idpel[idpel_clean]).strip() != "":
+        return str(map_idpel[idpel_clean]).strip()
 
-    # Cek batas daya PLN
+    # PRIORITAS 2: Cek Batas Daya PLN (> 33.000 VA otomatis masuk PLN)
     daya = 0
     match_daya = re.search(r'/(\d+)', str(tarif_daya))
     if match_daya:
         daya = int(match_daya.group(1))
-    elif str(tarif_daya).strip().isdigit():
-        daya = int(str(tarif_daya).strip())
-        
+    else:
+        bersih_angka = re.sub(r'[^\d]', '', str(tarif_daya))
+        if bersih_angka.isdigit():
+            daya = int(bersih_angka)
+            
     batas_pln = int(cfg.get("batas_daya_pln", 33000))
     if batas_pln > 0 and daya > batas_pln:
         return "PLN"
-    
-    # Cek IDPEL Khusus
-    map_idpel = parse_mapping_text(cfg.get("idpel_khusus_text", ""))
-    if str(idpel).strip() in map_idpel:
-        return map_idpel[str(idpel).strip()]
         
-    # Cek 3 Karakter Tengah KDDK (Index 3 s/d 6)
-    kddk_str = str(kddk).strip()
-    if len(kddk_str) >= 6:
-        kode_mid = kddk_str[3:6].upper()
-        map_kddk = parse_mapping_text(cfg.get("mapping_kddk_text", ""))
-        if kode_mid in map_kddk:
-            return map_kddk[kode_mid]
-        # Jika unit lain belum mengisi mapping, otomatis kelompokkan per kode RBM/KDDK tengahnya
+    # PRIORITAS 3: Cek Kode KDDK (Default digit ke-4 s/d ke-6)
+    pos_awal = cfg.get("posisi_kddk_awal", 4)
+    pos_akhir = cfg.get("posisi_kddk_akhir", 6)
+    kode_mid = ekstrak_kode_rbm(kddk, pos_awal, pos_akhir)
+    if kode_mid:
+        if kode_mid in map_kddk and str(map_kddk[kode_mid]).strip() != "":
+            return str(map_kddk[kode_mid]).strip()
         return f"RBM_{kode_mid}"
         
     return "TANPA_KDDK"
+
 
 # --- FUNGSI BACA FILE ICONPRN ---
 def baca_data_dari_iconprn_tul(teks_mentah, cfg):
@@ -503,21 +520,51 @@ def buat_blangko_kosong(init_code, up3, ulp, jml_lembar=50, page_lines=44):
 
 
 # ==========================================
-# ANTARMUKA UTAMA STREAMLIT
+# HEADER & PEMILIHAN PROFIL UNIT (ULP)
 # ==========================================
 st.title("🖨️ Aplikasi Cetak TUL VI-01 (Multi-Unit & Auto-Save)")
-st.caption("✨ Semua perubahan pengaturan posisi, nama pejabat, unit, dan pembagian petugas akan **disimpan otomatis**.")
 
-cfg = st.session_state.cfg
+col_top1, col_top2, col_top3 = st.columns([2, 1.5, 1])
+with col_top1:
+    daftar_unit = list(st.session_state.db_unit.keys())
+    idx_unit = daftar_unit.index(st.session_state.unit_aktif) if st.session_state.unit_aktif in daftar_unit else 0
+    pilihan_unit = st.selectbox("🏢 Pilih Profil Unit (ULP):", daftar_unit, index=idx_unit)
+    if pilihan_unit != st.session_state.unit_aktif:
+        st.session_state.unit_aktif = pilihan_unit
+        st.rerun()
+
+with col_top2:
+    nama_unit_baru = st.text_input("➕ Buat Profil Unit Baru (Misal: ULP KLATEN KOTA):", placeholder="Ketik nama ULP lalu klik Tambah")
+with col_top3:
+    st.write("")
+    st.write("")
+    if st.button("Tambah Unit Baru", use_container_width=True):
+        nama_bersih = nama_unit_baru.strip().upper()
+        if nama_bersih:
+            if not nama_bersih.startswith("ULP "):
+                nama_bersih = "ULP " + nama_bersih
+            if nama_bersih not in st.session_state.db_unit:
+                st.session_state.db_unit[nama_bersih] = buat_profil_standar(nama_bersih, is_tulung=False)
+                save_all_profiles(st.session_state.db_unit)
+            st.session_state.unit_aktif = nama_bersih
+            st.rerun()
+
+st.markdown("---")
+
+cfg = st.session_state.db_unit[st.session_state.unit_aktif]
+u_key = st.session_state.unit_aktif.replace(" ", "_")
 
 col_kiri, col_kanan = st.columns([1.15, 2])
 
+# ==========================================
+# PANEL KIRI: PENGATURAN CETAK & KALIBRASI
+# ==========================================
 with col_kiri:
-    st.subheader("⚙️ Pengaturan Cetak & Kalibrasi")
+    st.subheader(f"⚙️ Pengaturan {st.session_state.unit_aktif}")
     
     opsi_mode = ["Tahap 2: Isi Blangko Saja", "Tahap 1 & 2 Sekaligus", "Tahap 1 Saja: Cetak Blangko Kosong"]
     idx_mode = opsi_mode.index(cfg["mode_cetak"]) if cfg["mode_cetak"] in opsi_mode else 0
-    mode_cetak = st.radio("Pilih Tahap Pencetakan:", opsi_mode, index=idx_mode)
+    mode_cetak = st.radio("Pilih Tahap Pencetakan:", opsi_mode, index=idx_mode, key=f"mode_{u_key}")
 
     opsi_printer = [
         "Epson LQ-2190 (Standar Blangko 15 CPI - ESC g)", 
@@ -525,88 +572,63 @@ with col_kiri:
         "Epson LX-310 / LX-300+II (9-Pin Elite 12 CPI)"
     ]
     idx_prt = opsi_printer.index(cfg["tipe_printer"]) if cfg["tipe_printer"] in opsi_printer else 0
-    tipe_printer = st.selectbox("Pilih Printer yang Digunakan:", opsi_printer, index=idx_prt)
+    tipe_printer = st.selectbox("Pilih Printer yang Digunakan:", opsi_printer, index=idx_prt, key=f"prt_{u_key}")
 
     # 1. PENGATURAN UNIT & TANDA TANGAN
     with st.expander("✍️ Pengaturan Unit, Kota, Tgl, Jabatan & Pejabat", expanded=True):
-        st.caption("**Identitas Unit (Untuk Cetak Blangko):**")
         c_u1, c_u2 = st.columns(2)
-        with c_u1: up3 = st.text_input("Nama UP3", value=cfg.get("up3", "UP3 KLATEN"))
-        with c_u2: ulp = st.text_input("Nama ULP", value=cfg.get("ulp", "ULP TULUNG"))
+        with c_u1: up3 = st.text_input("Nama UP3", value=cfg.get("up3", "UP3 KLATEN"), key=f"up3_{u_key}")
+        with c_u2: ulp = st.text_input("Nama ULP", value=cfg.get("ulp", st.session_state.unit_aktif), key=f"ulp_{u_key}")
         
         st.markdown("---")
         st.caption("**1. Pengaturan Kota & Tanggal Cetak:**")
         c_kt1, c_kt2 = st.columns(2)
         with c_kt1:
-            cetak_kota = st.checkbox("Cetak Kota", value=bool(cfg.get("cetak_kota", False)))
-            kota_cetak = st.text_input("Nama Kota", value=cfg.get("kota_cetak", "TULUNG"))
-            geser_kota_x = st.number_input("Geser Kiri/Kanan Kota (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_kota_x", 0.0)), step=0.5, format="%.2f")
+            cetak_kota = st.checkbox("Cetak Kota", value=bool(cfg.get("cetak_kota", False)), key=f"ckota_{u_key}")
+            kota_cetak = st.text_input("Nama Kota", value=cfg.get("kota_cetak", "TULUNG"), key=f"kota_{u_key}")
+            geser_kota_x = st.number_input("Geser Kiri/Kanan Kota (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_kota_x", 0.0)), step=0.5, format="%.2f", key=f"gkx_{u_key}")
         with c_kt2:
-            cetak_tgl = st.checkbox("Cetak Tanggal", value=bool(cfg.get("cetak_tgl", True)))
+            cetak_tgl = st.checkbox("Cetak Tanggal", value=bool(cfg.get("cetak_tgl", True)), key=f"ctgl_{u_key}")
             zona_wib = timezone(timedelta(hours=7))
             tgl_hari_ini = datetime.now(zona_wib).strftime("%d-%m-%Y")
-            tgl_cetak = st.text_input("Tanggal Cetak", value=tgl_hari_ini)
-            geser_tgl = st.number_input("Geser Kiri/Kanan Tgl (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_tgl", 8.0)), step=0.5, format="%.2f")
-        geser_kota_tgl_y = st.number_input("Geser Turun/Naik Baris Kota & Tgl (Baris):", min_value=-10, max_value=10, value=int(cfg.get("geser_kota_tgl_y", 0)), step=1)
+            tgl_cetak = st.text_input("Tanggal Cetak", value=tgl_hari_ini, key=f"tgl_{u_key}")
+            geser_tgl = st.number_input("Geser Kiri/Kanan Tgl (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_tgl", 8.0)), step=0.5, format="%.2f", key=f"gtgl_{u_key}")
+        geser_kota_tgl_y = st.number_input("Geser Turun/Naik Baris Kota & Tgl (Baris):", min_value=-10, max_value=10, value=int(cfg.get("geser_kota_tgl_y", 0)), step=1, key=f"gkty_{u_key}")
 
         st.markdown("---")
         st.caption("**2. Pengaturan Jabatan:**")
-        cetak_jab = st.checkbox("Cetak Jabatan", value=bool(cfg.get("cetak_jab", False)))
-        jabatan = st.text_input("Nama Jabatan", value=cfg.get("jabatan", "MANAGER"))
+        cetak_jab = st.checkbox("Cetak Jabatan", value=bool(cfg.get("cetak_jab", False)), key=f"cjab_{u_key}")
+        jabatan = st.text_input("Nama Jabatan", value=cfg.get("jabatan", "MANAGER"), key=f"jab_{u_key}")
         c_jb1, c_jb2 = st.columns(2)
         with c_jb1:
-            geser_jab_x = st.number_input("Geser Kiri/Kanan Jabatan (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_jab_x", 0.0)), step=0.5, format="%.2f")
+            geser_jab_x = st.number_input("Geser Kiri/Kanan Jabatan (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_jab_x", 0.0)), step=0.5, format="%.2f", key=f"gjx_{u_key}")
         with c_jb2:
-            geser_jab_y = st.number_input("Geser Turun/Naik Jabatan (Baris):", min_value=-10, max_value=10, value=int(cfg.get("geser_jab_y", 0)), step=1)
+            geser_jab_y = st.number_input("Geser Turun/Naik Jabatan (Baris):", min_value=-10, max_value=10, value=int(cfg.get("geser_jab_y", 0)), step=1, key=f"gjy_{u_key}")
 
         st.markdown("---")
         st.caption("**3. Pengaturan Nama Pejabat / Manager:**")
-        cetak_mgr = st.checkbox("Cetak Nama Pejabat", value=bool(cfg.get("cetak_mgr", True)))
-        nama_manager = st.text_input("Nama Pejabat / Manager", value=cfg.get("nama_manager", "MARTONO AJI PRABOWO"))
+        cetak_mgr = st.checkbox("Cetak Nama Pejabat", value=bool(cfg.get("cetak_mgr", True)), key=f"cmgr_{u_key}")
+        nama_manager = st.text_input("Nama Pejabat / Manager", value=cfg.get("nama_manager", "MARTONO AJI PRABOWO"), key=f"mgr_{u_key}")
         c_mg1, c_mg2 = st.columns(2)
         with c_mg1:
-            geser_mgr_x = st.number_input("Geser Kiri/Kanan Nama (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_mgr_x", 0.0)), step=0.5, format="%.2f")
+            geser_mgr_x = st.number_input("Geser Kiri/Kanan Nama (Spasi):", min_value=-30.0, max_value=30.0, value=float(cfg.get("geser_mgr_x", 0.0)), step=0.5, format="%.2f", key=f"gmx_{u_key}")
         with c_mg2:
-            geser_mgr_y = st.number_input("Geser Turun/Naik Nama (Baris):", min_value=-10, max_value=10, value=int(cfg.get("geser_mgr_y", 0)), step=1)
+            geser_mgr_y = st.number_input("Geser Turun/Naik Nama (Baris):", min_value=-10, max_value=10, value=int(cfg.get("geser_mgr_y", 0)), step=1, key=f"gmy_{u_key}")
 
     # 2. KALIBRASI POSISI KERTAS & KOLOM
     with st.expander("📐 Kalibrasi Posisi Kertas & Kolom Khusus"):
-        geser_kanan = st.number_input("Geser Kanan/Kiri Semua Teks (Spasi):", min_value=-15.0, max_value=30.0, value=float(cfg.get("geser_kanan", 0.0)), step=0.5, format="%.2f")
-        geser_bawah = st.number_input("Geser Turun/Naik Semua Teks (Baris):", min_value=-5.0, max_value=10.0, value=float(cfg.get("geser_bawah", 0.0)), step=0.5, format="%.2f")
-        tinggi_halaman = st.number_input("Jumlah Baris per Lembar:", min_value=30, max_value=66, value=int(cfg.get("tinggi_halaman", 44)))
+        geser_kanan = st.number_input("Geser Kanan/Kiri Semua Teks (Spasi):", min_value=-15.0, max_value=30.0, value=float(cfg.get("geser_kanan", 0.0)), step=0.5, format="%.2f", key=f"gkanan_{u_key}")
+        geser_bawah = st.number_input("Geser Turun/Naik Semua Teks (Baris):", min_value=-5.0, max_value=10.0, value=float(cfg.get("geser_bawah", 0.0)), step=0.5, format="%.2f", key=f"gbawah_{u_key}")
+        tinggi_halaman = st.number_input("Jumlah Baris per Lembar:", min_value=30, max_value=66, value=int(cfg.get("tinggi_halaman", 44)), key=f"tinggi_{u_key}")
         st.markdown("---")
         st.caption("**Pengaturan Posisi Kolom Khusus (Spasi Kiri/Kanan):**")
-        geser_koked = st.number_input("Geser Posisi Koked (KDDK):", min_value=-30, max_value=30, value=int(cfg.get("geser_koked", 0)), step=1)
-        geser_rptag = st.number_input("Geser Posisi RpTag (Jumlah Rekening):", min_value=-30, max_value=30, value=int(cfg.get("geser_rptag", 0)), step=1)
-        geser_bk = st.number_input("Geser Posisi Biaya Keterlambatan:", min_value=-30, max_value=30, value=int(cfg.get("geser_bk", 0)), step=1)
-        geser_total = st.number_input("Geser Posisi Jumlah Total:", min_value=-30, max_value=30, value=int(cfg.get("geser_total", 0)), step=1)
+        geser_koked = st.number_input("Geser Posisi Koked (KDDK):", min_value=-30, max_value=30, value=int(cfg.get("geser_koked", 0)), step=1, key=f"gkoked_{u_key}")
+        geser_rptag = st.number_input("Geser Posisi RpTag (Jumlah Rekening):", min_value=-30, max_value=30, value=int(cfg.get("geser_rptag", 0)), step=1, key=f"grptag_{u_key}")
+        geser_bk = st.number_input("Geser Posisi Biaya Keterlambatan:", min_value=-30, max_value=30, value=int(cfg.get("geser_bk", 0)), step=1, key=f"gbk_{u_key}")
+        geser_total = st.number_input("Geser Posisi Jumlah Total:", min_value=-30, max_value=30, value=int(cfg.get("geser_total", 0)), step=1, key=f"gtot_{u_key}")
 
-    # 3. PENGATURAN PEMBAGIAN PETUGAS (UNTUK UNIT LAIN)
-    with st.expander("👷 Pengaturan Pembagian Petugas (Multi-Unit)"):
-        opsi_mode_ptg = [
-            "Otomatis dari KDDK (3 Huruf Tengah / Mapping Manual)",
-            "Tanpa Pembagian Petugas (Gabung Semua)"
-        ]
-        idx_mp = opsi_mode_ptg.index(cfg.get("mode_petugas")) if cfg.get("mode_petugas") in opsi_mode_ptg else 0
-        mode_petugas = st.radio("Metode Pengelompokan Petugas (Saat Upload .iconprn / Excel Tanpa Kolom Petugas):", opsi_mode_ptg, index=idx_mp)
-        
-        st.info(
-            "💡 **Tips untuk Unit Lain:**\n"
-            "- Jika kode KDDK unit Anda belum terdaftar di bawah, aplikasi tetap akan **otomatis mengelompokkan per 3 huruf tengah KDDK** (contoh: `RBM_AAA`, `RBM_BBB`).\n"
-            "- Jika ingin mengubahnya menjadi kode/nama petugas (misal `AAA=c01, BBB=Andi`), silakan ketik di bawah ini. Perubahan **otomatis tersimpan**!"
-        )
-        batas_daya_pln = st.number_input("Batas Daya Pelanggan Potensial / PLN (VA):", min_value=0, max_value=1000000, value=int(cfg.get("batas_daya_pln", 33000)), step=1000)
-        mapping_kddk_text = st.text_area("Daftar Mapping 3 Huruf Tengah KDDK (Format: KODE=PETUGAS, pisahkan koma):", value=cfg.get("mapping_kddk_text", DEFAULT_MAPPING_TEXT), height=110)
-        idpel_khusus_text = st.text_area("Daftar IDPEL Khusus (Format: IDPEL=PETUGAS, pisahkan koma):", value=cfg.get("idpel_khusus_text", DEFAULT_IDPEL_KHUSUS), height=70)
-        
-        if st.button("🔄 Reset Mapping ke Default ULP Tulung"):
-            cfg["mapping_kddk_text"] = DEFAULT_MAPPING_TEXT
-            cfg["idpel_khusus_text"] = DEFAULT_IDPEL_KHUSUS
-            save_config(cfg)
-            st.rerun()
-
-    # DETEKSI & SIMPAN OTOMATIS SEMUA PERUBAHAN PENGATURAN
-    new_cfg = {
+    # Update perubahan pengaturan dasar secara otomatis
+    cfg.update({
         "up3": up3, "ulp": ulp,
         "mode_cetak": mode_cetak, "tipe_printer": tipe_printer,
         "geser_kanan": geser_kanan, "geser_bawah": geser_bawah, "tinggi_halaman": tinggi_halaman,
@@ -615,37 +637,33 @@ with col_kiri:
         "cetak_tgl": cetak_tgl, "geser_tgl": geser_tgl, "geser_kota_tgl_y": geser_kota_tgl_y,
         "cetak_jab": cetak_jab, "jabatan": jabatan, "geser_jab_x": geser_jab_x, "geser_jab_y": geser_jab_y,
         "cetak_mgr": cetak_mgr, "nama_manager": nama_manager, "geser_mgr_x": geser_mgr_x, "geser_mgr_y": geser_mgr_y,
-        "mode_petugas": mode_petugas, "batas_daya_pln": batas_daya_pln,
-        "mapping_kddk_text": mapping_kddk_text, "idpel_khusus_text": idpel_khusus_text
-    }
-    if new_cfg != st.session_state.cfg:
-        st.session_state.cfg = new_cfg
-        save_config(new_cfg)
+    })
+    save_all_profiles(st.session_state.db_unit)
 
-    # 4. CADANGKAN / PULIHKAN FILE PENGATURAN (OPSIONAL UNTUK BEDA PC)
-    with st.expander("💾 Simpan / Muat Profil Pengaturan Unit (.json)"):
-        st.caption("Gunakan fitur ini jika ingin memindahkan pengaturan ke komputer lain atau menyimpan profil unit Anda:")
+    # 3. BACKUP / RESTORE PROFIL JSON
+    with st.expander("💾 Download / Upload Backup Pengaturan (.json)"):
+        st.caption("Cadangkan pengaturan unit Anda ke komputer agar aman kapan saja:")
         st.download_button(
-            "⬇️ Download Profil Pengaturan (.json)",
-            data=json.dumps(st.session_state.cfg, indent=4, ensure_ascii=False).encode("utf-8"),
-            file_name=f"Profil_TUL_{ulp.replace(' ', '_')}.json",
+            f"⬇️ Download Profil {st.session_state.unit_aktif} (.json)",
+            data=json.dumps(cfg, indent=4, ensure_ascii=False).encode("utf-8"),
+            file_name=f"Profil_{u_key}.json",
             mime="application/json",
             use_container_width=True
         )
-        file_profil = st.file_uploader("⬆️ Upload Profil Pengaturan (.json)", type=["json"])
+        file_profil = st.file_uploader("⬆️ Pulihkan dari File Profil (.json)", type=["json"], key=f"up_prof_{u_key}")
         if file_profil is not None:
             try:
                 loaded_prof = json.load(file_profil)
-                st.session_state.cfg.update(loaded_prof)
-                save_config(st.session_state.cfg)
-                st.success("✅ Profil berhasil dimuat! Memuat ulang halaman...")
+                st.session_state.db_unit[st.session_state.unit_aktif].update(loaded_prof)
+                save_all_profiles(st.session_state.db_unit)
+                st.success("✅ Profil berhasil dipulihkan!")
                 st.rerun()
             except Exception as e:
                 st.error(f"Gagal memuat profil: {e}")
 
 
 # ==========================================
-# PANEL KANAN: UPLOAD DATA & PROSES CETAK
+# PANEL KANAN: UPLOAD DATA, ATUR PETUGAS & CETAK
 # ==========================================
 with col_kanan:
     init_esc = get_printer_init_code(tipe_printer, tinggi_halaman)
@@ -662,19 +680,21 @@ with col_kanan:
             type="primary"
         )
     else:
-        st.subheader("📂 Upload File Tagihan & Cetak")
+        st.subheader("📂 1. Upload File Tagihan (.iconprn / .xlsx / .zip)")
         uploaded_files = st.file_uploader(
-            "Upload File Data (.xlsx, .xls, .iconprn, .prn, atau .zip)", 
+            "Upload File Data (Bisa langsung banyak file .iconprn, .zip, atau .xlsx)", 
             type=["xlsx", "xls", "iconprn", "prn", "zip"], 
             accept_multiple_files=True
         )
 
-        if uploaded_files:
-            df_t12 = None
-            col_map_final = None 
-            semua_data_iconprn = []
-            excel_uploaded = False
+        # Ekstrak daftar kode KDDK unik dari file yang di-upload untuk memudahkan pengisian tabel petugas
+        kddk_terdeteksi_di_file = set()
+        df_t12 = None
+        col_map_final = None 
+        semua_data_iconprn = []
+        excel_uploaded = False
 
+        if uploaded_files:
             with st.spinner("Memproses file masukan..."):
                 for uploaded_file in uploaded_files:
                     nama_file = uploaded_file.name.lower()
@@ -685,11 +705,111 @@ with col_kanan:
                             for z_name in z.namelist():
                                 if z_name.lower().endswith(('.iconprn', '.prn', '.txt')):
                                     teks_mentah = z.read(z_name).decode('latin1', errors='ignore')
-                                    semua_data_iconprn.extend(baca_data_dari_iconprn_tul(teks_mentah, st.session_state.cfg))
+                                    semua_data_iconprn.extend(baca_data_dari_iconprn_tul(teks_mentah, cfg))
                     else:
                         teks_mentah = uploaded_file.getvalue().decode('latin1', errors='ignore')
-                        semua_data_iconprn.extend(baca_data_dari_iconprn_tul(teks_mentah, st.session_state.cfg))
-                        
+                        semua_data_iconprn.extend(baca_data_dari_iconprn_tul(teks_mentah, cfg))
+
+            if semua_data_iconprn:
+                for d in semua_data_iconprn:
+                    kd = ekstrak_kode_rbm(d.get("KDDK", ""), cfg.get("posisi_kddk_awal", 4), cfg.get("posisi_kddk_akhir", 6))
+                    if kd: kddk_terdeteksi_di_file.add(kd)
+
+        # ==========================================
+        # PENGATURAN TABEL PEMBAGIAN PETUGAS & IDPEL KHUSUS
+        # ==========================================
+        with st.expander("👷 2. Atur Pembagian Kode Petugas & IDPEL Khusus (Auto-Save)", expanded=False):
+            st.info(
+                "📌 **Urutan Prioritas Penentuan Petugas:**\n"
+                "1. **Tabel IDPEL Khusus** *(Prioritas Tertinggi — Meskipun daya > 33.000 VA / dibaca PLN atau KDDK berbeda, jika IDPEL terdaftar di tabel ini maka otomatis masuk ke petugas yang ditentukan)*.\n"
+                "2. **Daya > Batas Daya PLN (33.000 VA)** otomatis masuk kelompok **`PLN`**.\n"
+                "3. **Tabel Kode KDDK** *(Otomatis mendeteksi kode tengah KDDK dari file yang Anda upload — tinggal ketik nama/kode petugasnya di kolom kanan)*."
+            )
+
+            c_rule1, c_rule2, c_rule3 = st.columns(3)
+            with c_rule1:
+                batas_daya_pln = st.number_input("Batas Daya PLN (VA):", min_value=0, max_value=1000000, value=int(cfg.get("batas_daya_pln", 33000)), step=1000, key=f"bdaya_{u_key}")
+            with c_rule2:
+                pos_awal = st.number_input("Ambil KDDK dari Huruf ke-:", min_value=1, max_value=12, value=int(cfg.get("posisi_kddk_awal", 4)), step=1, key=f"pawal_{u_key}")
+            with c_rule3:
+                pos_akhir = st.number_input("Sampai Huruf ke-:", min_value=1, max_value=12, value=int(cfg.get("posisi_kddk_akhir", 6)), step=1, key=f"pakhir_{u_key}")
+
+            tab_map_kddk, tab_map_idpel = st.tabs([
+                f"📋 Tabel Kode KDDK ke Petugas ({len(kddk_terdeteksi_di_file)} Terdeteksi di File)", 
+                "⭐ Tabel IDPEL Khusus (Termasuk Daya > 33.000 VA yg Ikut Petugas)"
+            ])
+
+            with tab_map_kddk:
+                st.caption("Ketik/ubah **Kode Petugas** di kolom sebelah kanan. Anda juga bisa menambah baris baru di paling bawah tabel:")
+                map_kddk_saved = cfg.get("map_kddk", {}).copy()
+                # Gabungkan kode KDDK yang sudah tersimpan dengan kode KDDK baru yang terdeteksi dari file upload
+                semua_kode_kddk = sorted(set(list(map_kddk_saved.keys()) + list(kddk_terdeteksi_di_file)))
+                
+                rows_kddk = []
+                for k in semua_kode_kddk:
+                    status_file = "✅ Ada di File" if k in kddk_terdeteksi_di_file else "Tersimpan"
+                    rows_kddk.append({
+                        "Kode KDDK": k,
+                        "Kode Petugas": map_kddk_saved.get(k, f"RBM_{k}"),
+                        "Status": status_file
+                    })
+                if not rows_kddk:
+                    rows_kddk = [{"Kode KDDK": "", "Kode Petugas": "", "Status": "Baru"}]
+
+                df_editor_kddk = pd.DataFrame(rows_kddk)
+                edited_kddk = st.data_editor(
+                    df_editor_kddk,
+                    num_rows="dynamic",
+                    use_container_width=True,
+                    height=260,
+                    disabled=["Status"],
+                    key=f"ed_kddk_{u_key}_{len(kddk_terdeteksi_di_file)}"
+                )
+
+            with tab_map_idpel:
+                st.caption("Masukkan **IDPEL** yang pembagian petugasnya khusus (atau pelanggan daya > 33.000 VA / bacaan PLN yang tagihannya diserahkan ke petugas tertentu):")
+                map_idpel_saved = cfg.get("map_idpel", {}).copy()
+                rows_idpel = [{"IDPEL Khusus": k, "Kode Petugas": v} for k, v in map_idpel_saved.items()]
+                if not rows_idpel:
+                    rows_idpel = [{"IDPEL Khusus": "", "Kode Petugas": ""}]
+
+                df_editor_idpel = pd.DataFrame(rows_idpel)
+                edited_idpel = st.data_editor(
+                    df_editor_idpel,
+                    num_rows="dynamic",
+                    use_container_width=True,
+                    height=240,
+                    key=f"ed_idpel_{u_key}"
+                )
+
+            if st.button("💾 Simpan Pengaturan Petugas & Terapkan ke Data", type="primary", use_container_width=True):
+                new_map_kddk = {}
+                for _, r in edited_kddk.iterrows():
+                    k_val = str(r.get("Kode KDDK", "")).strip().upper()
+                    p_val = str(r.get("Kode Petugas", "")).strip()
+                    if k_val and p_val and k_val != "NAN":
+                        new_map_kddk[k_val] = p_val
+
+                new_map_idpel = {}
+                for _, r in edited_idpel.iterrows():
+                    id_val = str(r.get("IDPEL Khusus", "")).replace('.0', '').strip()
+                    pt_val = str(r.get("Kode Petugas", "")).strip()
+                    if id_val and pt_val and id_val != "NAN":
+                        new_map_idpel[id_val] = pt_val
+
+                cfg["batas_daya_pln"] = batas_daya_pln
+                cfg["posisi_kddk_awal"] = pos_awal
+                cfg["posisi_kddk_akhir"] = pos_akhir
+                cfg["map_kddk"] = new_map_kddk
+                cfg["map_idpel"] = new_map_idpel
+                save_all_profiles(st.session_state.db_unit)
+                st.success("✅ Pembagian Kode KDDK dan IDPEL Khusus berhasil disimpan & diterapkan!")
+                st.rerun()
+
+        # ==========================================
+        # TAMPILKAN DATA & TOMBOL CETAK
+        # ==========================================
+        if uploaded_files:
             if excel_uploaded:
                 file_excel = next(f for f in uploaded_files if f.name.lower().endswith(('.xlsx', '.xls')))
                 xls = pd.ExcelFile(file_excel)
@@ -705,23 +825,28 @@ with col_kanan:
                     else: 
                         st.success("✅ Semua kolom Excel otomatis dikenali!")
 
-                    opsi_kolom = ["(Otomatis / Kosongkan)"] + df_excel.columns.tolist()
+                    opsi_kolom = ["(Hitung Otomatis dari Aturan Unit / Kosongkan)"] + df_excel.columns.tolist()
                     col_map_final = {}
                     cols_ui = st.columns(3)
                     for idx, (field_blangko, terdeteksi) in enumerate(auto_map.items()):
                         with cols_ui[idx % 3]:
                             idx_default = opsi_kolom.index(terdeteksi) if terdeteksi in opsi_kolom else 0
                             pilihan_kol = st.selectbox(f"[{field_blangko}]:", opsi_kolom, index=idx_default, key=f"map_{field_blangko}")
-                            col_map_final[field_blangko] = None if pilihan_kol == "(Otomatis / Kosongkan)" else pilihan_kol
+                            col_map_final[field_blangko] = None if pilihan_kol == "(Hitung Otomatis dari Aturan Unit / Kosongkan)" else pilihan_kol
 
-                # Jika di Excel tidak ada kolom petugas, buat otomatis dari KDDK sesuai pengaturan
-                if col_map_final.get("petugas") is None:
+                # Tambahkan opsi apakah ingin memakai kolom petugas di Excel atau hitung ulang pakai aturan Unit
+                pakai_aturan_unit = st.checkbox(
+                    "Gunakan Aturan Pembagian Petugas & IDPEL Khusus Unit Ini (Abaikan kolom petugas bawaan Excel)", 
+                    value=(col_map_final.get("petugas") is None)
+                )
+
+                if pakai_aturan_unit or col_map_final.get("petugas") is None:
                     df_excel["_petugas_auto"] = df_excel.apply(
                         lambda r: tentukan_petugas_universal(
                             ambil_nilai(r, col_map_final, "IDPEL"),
                             ambil_nilai(r, col_map_final, "Tarif/Daya"),
                             ambil_nilai(r, col_map_final, "KDDK"),
-                            st.session_state.cfg
+                            cfg
                         ), axis=1
                     )
                     col_map_final["petugas"] = "_petugas_auto"
@@ -736,30 +861,24 @@ with col_kanan:
                 with c_info1:
                     st.success(f"✅ Berhasil memuat **{len(df_t12)} lembar** tagihan pelanggan!")
                 with c_info2:
-                    # Tombol bantu download rekap Excel jika inputnya dari .iconprn
-                    if not excel_uploaded:
-                        out_xl = io.BytesIO()
-                        with pd.ExcelWriter(out_xl, engine='openpyxl') as writer:
-                            df_t12.to_excel(writer, index=False)
-                        st.download_button(
-                            "📥 Download Rekap Excel (.xlsx)",
-                            data=out_xl.getvalue(),
-                            file_name="Rekap_TUL_ICONPRN.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
-                        )
+                    out_xl = io.BytesIO()
+                    with pd.ExcelWriter(out_xl, engine='openpyxl') as writer:
+                        df_t12.to_excel(writer, index=False)
+                    st.download_button(
+                        "📥 Download Rekap Excel (.xlsx)",
+                        data=out_xl.getvalue(),
+                        file_name=f"Rekap_TUL_{u_key}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
                 
                 kol_petugas = col_map_final.get("petugas") if col_map_final else "petugas"
                 
-                if mode_petugas == "Tanpa Pembagian Petugas (Gabung Semua)":
-                    st.subheader("📋 Rentang Urutan Cetak (Semua Data)")
-                    ptg_terpilih = ["SEMUA"]
-                    df_saring = df_t12.reset_index(drop=True)
-                elif kol_petugas and kol_petugas in df_t12.columns:
+                if kol_petugas and kol_petugas in df_t12.columns:
                     df_t12[kol_petugas] = df_t12[kol_petugas].fillna("TANPA_PETUGAS").astype(str)
                     daftar_ptg = sorted(df_t12[kol_petugas].unique().tolist())
 
-                    st.subheader("👷 Pilih Petugas / Kelompok RBM & Urutan Cetak")
+                    st.subheader("🖨️ 3. Pilih Petugas & Urutan Cetak")
                     c_p1, c_p2 = st.columns([3, 1])
                     with c_p2:
                         pilih_semua_ptg = st.checkbox("Pilih Semua Petugas", value=False)
@@ -768,7 +887,7 @@ with col_kanan:
                         ptg_terpilih = st.multiselect("Pilih Kode Petugas / RBM:", daftar_ptg, default=default_ptg)
                     df_saring = df_t12[df_t12[kol_petugas].isin(ptg_terpilih)].reset_index(drop=True)
                 else:
-                    st.subheader("📋 Rentang Urutan Cetak")
+                    st.subheader("🖨️ 3. Rentang Urutan Cetak")
                     ptg_terpilih = ["SEMUA"]
                     df_saring = df_t12.reset_index(drop=True)
 
@@ -783,7 +902,7 @@ with col_kanan:
 
                 df_cetak = df_saring.iloc[urut_awal - 1 : urut_akhir]
                 label_ptg_info = ", ".join(ptg_terpilih[:5]) + ("..." if len(ptg_terpilih) > 5 else "")
-                st.info(f"Siap mencetak **{len(df_cetak)} lembar** (Kelompok: **{label_ptg_info}**, Urutan {urut_awal} s/d {urut_akhir}).")
+                st.info(f"Siap mencetak **{len(df_cetak)} lembar** (Petugas: **{label_ptg_info}**, Urutan {urut_awal} s/d {urut_akhir}).")
                 st.dataframe(df_cetak, use_container_width=True, height=240)
 
                 if len(df_cetak) > 0:
@@ -845,7 +964,7 @@ with col_kanan:
                             st.download_button(
                                 label="📦 DOWNLOAD PAKET PER PETUGAS (.ZIP)",
                                 data=buf.getvalue(),
-                                file_name=f"PAKET_TUL_{ulp.replace(' ', '_')}_{urut_awal}_sd_{urut_akhir}.zip",
+                                file_name=f"PAKET_TUL_{u_key}_{urut_awal}_sd_{urut_akhir}.zip",
                                 mime="application/zip",
                                 use_container_width=True,
                                 key=f"dl_zip_{dynamic_key}"
