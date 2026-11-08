@@ -9,7 +9,7 @@ import math
 from datetime import datetime, timedelta, timezone
 
 # --- PENGATURAN HALAMAN ---
-st.set_page_config(page_title="Aplikasi Cetak TUL VI-01 Multi-Unit", layout="wide")
+st.set_page_config(page_title="Aplikasi Cetak TUL VI-01", layout="wide")
 
 # --- SISTEM PENYIMPANAN MULTI-UNIT (AUTO-SAVE) ---
 DB_CONFIG_FILE = "db_profil_unit_tul.json"
